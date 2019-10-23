@@ -165,6 +165,18 @@
 	return allowAutoUpdates;
 }
 
+- (BOOL)allowSkipUpdates
+{
+	BOOL		allowSkipUpdates = YES;	// Defaults to YES.
+	if( [host objectForInfoDictionaryKey:SUAllowSkipUpdatesKey] )
+		allowSkipUpdates = [host boolForInfoDictionaryKey: SUAllowSkipUpdatesKey];
+
+	if( delegate && [delegate respondsToSelector: @selector(updateAlert:shouldAllowSkipUpdate:)] )
+		[delegate updateAlert: self shouldAllowSkipUpdate: &allowSkipUpdates];
+
+	return allowSkipUpdates;
+}
+
 - (void)awakeFromNib
 {	
 	NSString*	sizeStr = [host objectForInfoDictionaryKey:SUFixedHTMLDisplaySizeKey];
@@ -267,7 +279,12 @@
 	{
 		[self displayReleaseNotes];
 	}
-	
+
+	if (![self allowSkipUpdates])
+	{
+		[skipButton setHidden: YES];
+	}
+
 	[[[releaseNotesView superview] superview] setHidden: !showReleaseNotes];	// UK 2007-09-18
 
 }
