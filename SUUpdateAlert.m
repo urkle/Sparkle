@@ -25,6 +25,20 @@
 @end
 
 
+// WebKit protocols are not explicitly declared until 10.11 SDK, so
+// declare dummy protocols to keep the build working on earlier SDKs.
+#if __MAC_OS_X_VERSION_MAX_ALLOWED < 101100
+@protocol WebFrameLoadDelegate <NSObject>
+@end
+@protocol WebPolicyDelegate <NSObject>
+@end
+@protocol WebUIDelegate <NSObject>
+@end
+#endif
+
+@interface SUUpdateAlert () <WebFrameLoadDelegate, WebPolicyDelegate>//, WebUIDelegate, NSTouchBarDelegate>
+@end
+
 @implementation SUUpdateAlert
 
 - (id)initWithAppcastItem:(SUAppcastItem *)item host:(SUHost *)aHost
@@ -151,6 +165,18 @@
 	return allowAutoUpdates;
 }
 
+- (BOOL)allowSkipUpdates
+{
+	BOOL		allowSkipUpdates = YES;	// Defaults to YES.
+	if( [host objectForInfoDictionaryKey:SUAllowSkipUpdatesKey] )
+		allowSkipUpdates = [host boolForInfoDictionaryKey: SUAllowSkipUpdatesKey];
+
+	if( delegate && [delegate respondsToSelector: @selector(updateAlert:shouldAllowSkipUpdate:)] )
+		[delegate updateAlert: self shouldAllowSkipUpdate: &allowSkipUpdates];
+
+	return allowSkipUpdates;
+}
+
 - (void)awakeFromNib
 {	
 	NSString*	sizeStr = [host objectForInfoDictionaryKey:SUFixedHTMLDisplaySizeKey];
@@ -253,7 +279,12 @@
 	{
 		[self displayReleaseNotes];
 	}
-	
+
+	if (![self allowSkipUpdates])
+	{
+		[skipButton setHidden: YES];
+	}
+
 	[[[releaseNotesView superview] superview] setHidden: !showReleaseNotes];	// UK 2007-09-18
 
 }
